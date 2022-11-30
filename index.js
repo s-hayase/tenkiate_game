@@ -35,18 +35,18 @@ const server = http
             if (ans_tenki === tenki.title) {
               res.write(pug.renderFile('./answer.pug', {
                 answer: '正解！',
-                user:userName,
-                tokyo_tenki:tenki.title,
+                user: userName,
+                tokyo_tenki: tenki.title,
                 choise_tenki: ans_tenki,
-                imgsrc:tenki.url
+                imgsrc: tenki.url
               }));
             } else {
               res.write(pug.renderFile('./answer.pug', {
                 answer: '残念！',
-                user:userName,
-                tokyo_tenki:tenki.title,
+                user: userName,
+                tokyo_tenki: tenki.title,
                 choise_tenki: ans_tenki,
-                imgsrc:tenki.url
+                imgsrc: tenki.url
               }));
             }
             res.end();
@@ -76,31 +76,34 @@ let options = {
 
 let tenki = { title: null, url: null };
 
-const client = https.get('https://weather.tsukumijima.net/api/forecast?city=130010', options, (res) => {
-  console.info(res.statusCode);
-  let text = ' ';
-  res.on('data', (chunk) => {
-    text += chunk;
-  });
-  res.on('end', () => {
-    const data = JSON.parse(text);
-    console.log(data.forecasts[1].image.title);
-    console.log(data.forecasts[1].image.url);
-    tenki.url = data.forecasts[1].image.url;
-    const data_title = data.forecasts[1].image.title;
-    if (data_title.indexOf("晴") != -1) {
-      tenki.title = "晴れ";
-    } else if (data_title.indexOf("曇") != -1) {
-      tenki.title = "曇り";
-    } else {
-      tenki.title = "雨";
-    }
+const cron = require('node-cron');
+
+cron.schedule('0 0 0 * * *', function () {
+  const client = https.get('https://weather.tsukumijima.net/api/forecast?city=130010', options, (res) => {
+    console.info(res.statusCode);
+    let text = ' ';
+    res.on('data', (chunk) => {
+      text += chunk;
+    });
+    res.on('end', () => {
+      const data = JSON.parse(text);
+      console.log(data.forecasts[1].image.title);
+      console.log(data.forecasts[1].image.url);
+      tenki.url = data.forecasts[1].image.url;
+      const data_title = data.forecasts[1].image.title;
+      if (data_title.indexOf("晴") != -1) {
+        tenki.title = "晴れ";
+      } else if (data_title.indexOf("曇") != -1) {
+        tenki.title = "曇り";
+      } else {
+        tenki.title = "雨";
+      }
+      client.end();
+    });
+  })
+
+  client.on('error', (e) => {
+    console.error(`problem with request: ${e.message}`);
     client.end();
   });
-})
-
-client.on('error', (e) => {
-  console.error(`problem with request: ${e.message}`);
-  client.end();
 });
-
